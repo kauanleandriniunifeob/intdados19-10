@@ -1,42 +1,45 @@
-# ProjetoOFX
+# Atividade OFX - Integração de Dados
 
-Leitura de extrato bancário no formato OFX com Python, com carga opcional em PostgreSQL (processo ETL simplificado).
+Programa em Python que lê um extrato bancário no formato OFX e mostra as movimentações na tela. Também tem a parte extra de salvar tudo no PostgreSQL.
 
-## Estrutura
+## O que o programa faz
+
+- Lê o arquivo `extrato.ofx` com a biblioteca `ofxparse`
+- Mostra data, valor e descrição de cada movimentação
+- Mostra quantas movimentações foram encontradas
+- Calcula o total de entradas, o total de saídas e o saldo
+
+## Como rodar
+
+Precisa ter o Python instalado.
 
 ```
-ProjetoOFX
-├── main.py            # leitura, exibição e totais (+ chamada ao banco com --banco)
-├── banco.py           # desafio extra: gravação no PostgreSQL sem duplicatas
-├── schema.sql         # criação da tabela + consultas de validação
-├── extrato.ofx        # arquivo de entrada
-├── requirements.txt
-└── README.md
-```
-
-## Como executar
-
-```bash
-python -m venv venv
-venv\Scripts\activate          # Windows
 pip install -r requirements.txt
-
-python main.py                 # parte principal
-python main.py --banco         # parte principal + gravação no PostgreSQL
+python main.py
 ```
 
-## Banco de dados (desafio extra)
+Para salvar no banco também:
 
-1. Crie/escolha um banco no PostgreSQL.
-2. Defina as variáveis de ambiente (ou edite `CONFIG` em `banco.py`):
-   `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`.
-3. Execute `python main.py --banco` (a tabela é criada automaticamente; o `schema.sql` serve de referência).
-4. No DBeaver, conecte no mesmo banco e rode `SELECT * FROM movimentacoes;`.
+```
+python main.py --banco
+```
 
-### Bônus: sem duplicatas
+## Parte do PostgreSQL
 
-A tabela possui `UNIQUE (data_movimentacao, valor, descricao)` e o `INSERT` usa `ON CONFLICT DO NOTHING`. Rodar o programa várias vezes não duplica registros: na segunda execução, todas as linhas aparecem como "ignoradas".
+O arquivo `banco.py` conecta no banco com o `psycopg2` e insere cada movimentação na tabela `movimentacoes`. A tabela é criada sozinha se ainda não existir (o `schema.sql` tem o mesmo comando).
 
-## Conceito
+Os dados de conexão ficam nas variáveis de ambiente `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER` e `PGPASSWORD`. Se não definir nada, ele usa localhost, porta 5432 e usuário postgres.
 
-Extração (leitura do OFX) → Transformação (cálculo de entradas/saídas/saldo, ajuste de tipos) → Carga (INSERT no PostgreSQL).
+Para conferir, abri a tabela no DBeaver e rodei:
+
+```
+SELECT * FROM movimentacoes;
+```
+
+### Evitando duplicados (desafio bônus)
+
+Coloquei uma restrição UNIQUE em data, valor e descrição, e o INSERT usa `ON CONFLICT DO NOTHING`. Assim, se rodar o programa de novo com o mesmo arquivo, ele não grava as linhas repetidas e avisa quantas foram ignoradas.
+
+## Observação
+
+O saldo calculado (R$ 11.840,30) é diferente do saldo que vem no final do arquivo OFX (R$ 12.030,20). Isso acontece porque o extrato só tem as movimentações de 01/10 a 17/10 e não mostra o saldo que a conta já tinha antes.
